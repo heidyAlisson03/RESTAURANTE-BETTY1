@@ -1,0 +1,38 @@
+============================================
+  RESTAURANTE BETTY - Guia de Instalacion
+============================================
+
+REQUISITOS:
+  - Node.js version 18 o superior
+    Descargar de: https://nodejs.org
+    (Descargar la version LTS recomendada)
+
+PASOS PARA INSTALAR:
+
+  1. Descomprimir el archivo ZIP en una carpeta
+
+  2. Abrir una terminal (CMD o PowerShell) en esa carpeta
+     (Click derecho en la carpeta > "Abrir en terminal")
+
+  3. Ejecutar el siguiente comando para instalar dependencias:
+
+        npm install
+
+  4. Ejecutar el siguiente comando para iniciar el servidor:
+
+        npm start
+
+  5. Abrir el navegador en:
+
+        Pagina del restaurante:  http://localhost:3000
+        Panel de administrador:  http://localhost:3000/admin
+
+CREDENCIALES DEL ADMINISTRADOR:
+  Usuario:    admin
+  Contrasena: admin123
+
+NOTAS:
+  - La primera vez que se inicia, se crea automaticamente la
+    base de datos con los platos y configuracion del restaurante.
+  - Para detener el servidor presionar Ctrl + C en la terminal.
+  - Para volver a iniciar, solo ejecutar: npm start

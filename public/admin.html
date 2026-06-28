@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Restaurante Betty</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ==================== LOGIN ==================== -->
+  <div class="login-screen" id="loginView">
+    <div class="login-left">
+      <div class="login-brand">
+        <div class="login-logo"><i class="fas fa-utensils"></i></div>
+        <h1>Restaurante Betty</h1>
+        <p>Sistema de Gestion</p>
+      </div>
+    </div>
+    <div class="login-right">
+      <div class="login-box">
+        <h2>Iniciar Sesion</h2>
+        <p>Ingresa tus credenciales para acceder al panel</p>
+        <form onsubmit="login(event)">
+          <div class="form-group">
+            <label><i class="fas fa-user"></i> Usuario</label>
+            <input type="text" id="loginUser" required placeholder="Ingresa tu usuario">
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-lock"></i> Contrasena</label>
+            <input type="password" id="loginPass" required placeholder="Ingresa tu contrasena">
+          </div>
+          <button type="submit" class="btn-login">
+            <i class="fas fa-arrow-right-to-bracket"></i> Ingresar
+          </button>
+        </form>
+        <p class="login-error" id="loginError">
+          <i class="fas fa-circle-exclamation"></i> Credenciales incorrectas
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN LAYOUT ==================== -->
+  <div class="admin-layout" id="adminView">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo"><i class="fas fa-utensils"></i></div>
+        <div class="sidebar-brand-text">
+          <span class="sidebar-title">Betty</span>
+          <span class="sidebar-sub">Panel Admin</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Menu Principal</div>
+        <a class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+          <i class="fas fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-item" data-tab="pedidos" onclick="switchTab('pedidos')">
+          <i class="fas fa-receipt"></i>
+          <span>Pedidos</span>
+          <span class="nav-badge" id="pedidosBadge" style="display:none">0</span>
+        </a>
+        <a class="nav-item" data-tab="platos" onclick="switchTab('platos')">
+          <i class="fas fa-bowl-food"></i>
+          <span>Platos</span>
+        </a>
+        <a class="nav-item" data-tab="categorias" onclick="switchTab('categorias')">
+          <i class="fas fa-tags"></i>
+          <span>Categorias</span>
+        </a>
+
+        <div class="nav-section-label">Sistema</div>
+        <a class="nav-item" data-tab="config" onclick="switchTab('config')">
+          <i class="fas fa-gear"></i>
+          <span>Configuracion</span>
+        </a>
+        <a class="nav-item" href="/" target="_blank">
+          <i class="fas fa-external-link-alt"></i>
+          <span>Ver Sitio Web</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-logout-sidebar" onclick="logout()">
+          <i class="fas fa-right-from-bracket"></i>
+          <span>Cerrar Sesion</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+      <button class="mobile-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <span class="mobile-title"><i class="fas fa-utensils"></i> Betty Admin</span>
+      <div class="mobile-actions">
+        <a href="/" target="_blank"><i class="fas fa-external-link-alt"></i></a>
+      </div>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <div class="topbar">
+        <div class="topbar-left">
+          <h1 class="page-title" id="pageTitle">Dashboard</h1>
+          <span class="page-subtitle" id="pageSubtitle">Resumen general del restaurante</span>
+        </div>
+        <div class="topbar-right">
+          <div class="topbar-user">
+            <div class="user-avatar"><i class="fas fa-user-shield"></i></div>
+            <span>Administrador</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== DASHBOARD ==================== -->
+      <div class="tab-content active" id="tab-dashboard">
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="content-grid">
+          <div class="content-card large">
+            <div class="card-header">
+              <h3><i class="fas fa-clock-rotate-left"></i> Pedidos Recientes</h3>
+            </div>
+            <div class="card-body" id="recentOrders"></div>
+          </div>
+          <div class="content-card">
+            <div class="card-header">
+              <h3><i class="fas fa-triangle-exclamation"></i> Stock Bajo</h3>
+            </div>
+            <div class="card-body" id="lowStockList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== PEDIDOS ==================== -->
+      <div class="tab-content" id="tab-pedidos">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="filter-pills">
+              <button class="filter-pill active" data-filter="" onclick="setFilter('')">
+                <i class="fas fa-layer-group"></i> Todos
+              </button>
+              <button class="filter-pill" data-filter="pendiente" onclick="setFilter('pendiente')">
+                <i class="fas fa-hourglass-half"></i> Pendientes
+              </button>
+              <button class="filter-pill" data-filter="en_preparacion" onclick="setFilter('en_preparacion')">
+                <i class="fas fa-fire-burner"></i> En Preparacion
+              </button>
+              <button class="filter-pill" data-filter="completado" onclick="setFilter('completado')">
+                <i class="fas fa-circle-check"></i> Completados
+              </button>
+              <button class="filter-pill" data-filter="cancelado" onclick="setFilter('cancelado')">
+                <i class="fas fa-circle-xmark"></i> Cancelados
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="pedidosList"></div>
+      </div>
+
+      <!-- ==================== PLATOS ==================== -->
+      <div class="tab-content" id="tab-platos">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="searchPlatos" placeholder="Buscar plato..." oninput="renderPlatos()">
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <button class="btn btn-primary" onclick="showPlatoModal()">
+              <i class="fas fa-plus"></i> Nuevo Plato
+            </button>
+          </div>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Plato</th>
+                <th>Categoria</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Estado</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="platosTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ==================== CATEGORIAS ==================== -->
+      <div class="tab-content" id="tab-categorias">
+        <div class="toolbar">
+          <div class="toolbar-left"></div>
+          <div class="toolbar-right">
+            <button class="btn btn-primary" onclick="showCategoriaModal()">
+              <i class="fas fa-plus"></i> Nueva Categoria
+            </button>
+          </div>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Orden</th>
+                <th>Platos</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="categoriasTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ==================== CONFIG ==================== -->
+      <div class="tab-content" id="tab-config">
+        <div class="config-grid">
+          <div class="config-card">
+            <div class="config-card-header">
+              <i class="fas fa-store"></i>
+              <h3>Informacion del Restaurante</h3>
+            </div>
+            <div class="form-group">
+              <label>Nombre del Restaurante</label>
+              <input type="text" id="cfgNombre">
+            </div>
+            <div class="form-group">
+              <label>Direccion</label>
+              <input type="text" id="cfgDireccion">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Telefono</label>
+                <input type="text" id="cfgTelefono">
+              </div>
+              <div class="form-group">
+                <label>Horario</label>
+                <input type="text" id="cfgHorario">
+              </div>
+            </div>
+          </div>
+          <div class="config-card">
+            <div class="config-card-header">
+              <i class="fas fa-sliders"></i>
+              <h3>Configuracion del Menu</h3>
+            </div>
+            <div class="form-group">
+              <label>Precio Menu Normal (S/.)</label>
+              <input type="number" step="0.50" id="cfgPrecioMenu">
+            </div>
+            <div class="form-group">
+              <label>Mensaje de Bienvenida</label>
+              <textarea id="cfgMensaje" rows="3"></textarea>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-save-config" onclick="saveConfig()">
+          <i class="fas fa-floppy-disk"></i> Guardar Configuracion
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== PLATO MODAL ==================== -->
+  <div class="modal-overlay" id="platoModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="platoModalTitle"><i class="fas fa-bowl-food"></i> Nuevo Plato</h2>
+        <button class="modal-close" onclick="closePlatoModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <form onsubmit="savePlato(event)">
+        <input type="hidden" id="platoId">
+        <div class="form-group">
+          <label>Nombre del plato *</label>
+          <input type="text" id="platoNombre" required placeholder="Ej: Lomo Saltado">
+        </div>
+        <div class="form-group">
+          <label>Descripcion</label>
+          <textarea id="platoDesc" rows="2" placeholder="Descripcion breve del plato"></textarea>
+        </div>
+        <!-- Image Selector -->
+        <div class="form-group">
+          <label>Foto del plato</label>
+          <input type="hidden" id="platoImagen">
+
+          <!-- Preview -->
+          <div class="img-preview-wrap" id="imgPreviewWrap">
+            <img id="imgPreview" src="" alt="Vista previa">
+            <button type="button" class="img-preview-remove" id="imgPreviewRemove" onclick="clearImageSelection()" title="Quitar imagen">
+              <i class="fas fa-times"></i>
+            </button>
+            <div class="img-preview-empty" id="imgPreviewEmpty">
+              <i class="fas fa-image"></i>
+              <span>Sin imagen seleccionada</span>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="img-tabs">
+            <button type="button" class="img-tab active" data-imgtab="upload" onclick="switchImgTab('upload')">
+              <i class="fas fa-cloud-arrow-up"></i> Subir
+            </button>
+            <button type="button" class="img-tab" data-imgtab="gallery" onclick="switchImgTab('gallery')">
+              <i class="fas fa-images"></i> Galería
+            </button>
+            <button type="button" class="img-tab" data-imgtab="url" onclick="switchImgTab('url')">
+              <i class="fas fa-link"></i> URL
+            </button>
+          </div>
+
+          <!-- Tab: Upload -->
+          <div class="img-tab-content active" id="imgtab-upload">
+            <div class="upload-drop-zone" id="uploadDropZone">
+              <input type="file" id="uploadFileInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+              <i class="fas fa-cloud-arrow-up"></i>
+              <p>Arrastra una imagen aquí o <strong>haz clic para seleccionar</strong></p>
+              <span>JPG, PNG, WEBP — Máx. 5MB</span>
+            </div>
+            <div class="upload-progress" id="uploadProgress" style="display:none">
+              <div class="upload-progress-bar"><div class="upload-progress-fill" id="uploadFill"></div></div>
+              <span id="uploadStatus">Subiendo...</span>
+            </div>
+          </div>
+
+          <!-- Tab: Gallery -->
+          <div class="img-tab-content" id="imgtab-gallery">
+            <div class="gallery-upload-bar">
+              <input type="file" id="galleryFileInput" accept="image/*" style="display:none" onchange="handleGalleryFileSelect(event)">
+              <input type="text" id="galleryImageName" class="gallery-name-input" placeholder="Nombre (ej: postre, bebida...)">
+              <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('galleryFileInput').click()">
+                <i class="fas fa-plus"></i> Agregar imagen
+              </button>
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+              <div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Cargando galería...</p></div>
+            </div>
+          </div>
+
+          <!-- Tab: URL -->
+          <div class="img-tab-content" id="imgtab-url">
+            <div class="url-input-group">
+              <input type="text" id="platoImagenUrl" placeholder="https://ejemplo.com/foto.jpg" oninput="previewUrlImage()">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="applyUrlImage()">
+                <i class="fas fa-check"></i> Aplicar
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- End Image Selector -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Precio (S/.) *</label>
+            <input type="number" step="0.50" id="platoPrecio" required placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label>Stock *</label>
+            <input type="number" id="platoStock" required placeholder="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categoria *</label>
+            <select id="platoCategoria" required></select>
+          </div>
+          <div class="form-group">
+            <label>Disponible</label>
+            <select id="platoDisponible">
+              <option value="1">Si - Visible en carta</option>
+              <option value="0">No - Oculto</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button type="button" class="btn btn-ghost" onclick="closePlatoModal()">
+            <i class="fas fa-arrow-left"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-floppy-disk"></i> Guardar Plato
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== CATEGORIA MODAL ==================== -->
+  <div class="modal-overlay" id="categoriaModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2><i class="fas fa-tags"></i> Nueva Categoria</h2>
+        <button class="modal-close" onclick="closeCategoriaModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <form onsubmit="saveCategoria(event)">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input type="text" id="catNombre" required placeholder="Ej: Platos a la Carta">
+        </div>
+        <div class="form-group">
+          <label>Orden de aparicion</label>
+          <input type="number" id="catOrden" value="0">
+        </div>
+        <div class="modal-buttons">
+          <button type="button" class="btn btn-ghost" onclick="closeCategoriaModal()">
+            <i class="fas fa-arrow-left"></i> Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-floppy-disk"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
