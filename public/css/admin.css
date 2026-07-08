@@ -1444,3 +1444,18 @@ body {
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
 }
+.order-payment {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #555;
+}
+.payment-thumb {
+  display: block;
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 6px;
+  margin-top: 6px;
+  border: 1px solid #ddd;
+  cursor: zoom-in;
+  object-fit: cover;
+}
