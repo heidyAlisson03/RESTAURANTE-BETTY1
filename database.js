@@ -111,7 +111,14 @@ function seedData() {
     insertConfig.run('mensaje_bienvenida', 'Bienvenidos a Restaurante Betty - Los mejores menus criollos');
   });
   config();
+// Migracion: agregar columna captura_pago si no existe
+const columnasPedidos = db.prepare("PRAGMA table_info(pedidos)").all();
+const tieneCaptura = columnasPedidos.some(c => c.name === 'captura_pago');
+if (!tieneCaptura) {
+  db.exec("ALTER TABLE pedidos ADD COLUMN captura_pago TEXT DEFAULT ''");
+}
 
+seedData();
   const hash = bcrypt.hashSync('admin123', 10);
   db.prepare('INSERT OR IGNORE INTO admin_users (username, password) VALUES (?, ?)').run('admin', hash);
 }
