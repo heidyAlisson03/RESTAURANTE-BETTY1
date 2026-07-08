@@ -792,6 +792,14 @@ function renderOrderCard(p) {
         </div>
         <div class="order-items"><i class="fas fa-utensils"></i> ${p.detalle || 'Sin detalle'}</div>
         ${p.notas ? `<div class="order-notes"><i class="fas fa-message"></i> ${p.notas}</div>` : ''}
+                ${p.captura_pago ? `
+          <div class="order-payment">
+            <i class="fas fa-receipt"></i> Comprobante de pago:
+            <a href="${p.captura_pago}" target="_blank">
+              <img src="${p.captura_pago}" alt="Captura de pago" class="payment-thumb">
+            </a>
+          </div>
+        ` : ''}
       </div>
       <div class="order-footer">
         <span class="order-total">S/. ${p.total.toFixed(2)}</span>
