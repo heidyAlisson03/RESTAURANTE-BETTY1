@@ -368,6 +368,7 @@ async function submitOrder(e) {
   const telefono = document.getElementById('clienteTel').value.trim();
   const direccion = document.getElementById('clienteDir').value.trim();
   const notas = document.getElementById('clienteNotas').value.trim();
+  const capturaInput = document.getElementById('clienteCaptura');
 
   if (!nombre) {
     showToast('Ingresa tu nombre', true);
@@ -379,17 +380,20 @@ async function submitOrder(e) {
     cantidad: c.cantidad
   }));
 
+  const formData = new FormData();
+  formData.append('cliente_nombre', nombre);
+  formData.append('cliente_telefono', telefono);
+  formData.append('cliente_direccion', direccion);
+  formData.append('notas', notas);
+  formData.append('items', JSON.stringify(items));
+  if (capturaInput.files[0]) {
+    formData.append('captura', capturaInput.files[0]);
+  }
+
   try {
     const res = await fetch('/api/pedidos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cliente_nombre: nombre,
-        cliente_telefono: telefono,
-        cliente_direccion: direccion,
-        notas,
-        items
-      })
+      body: formData
     });
 
     const data = await res.json();
