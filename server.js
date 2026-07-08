@@ -99,71 +99,88 @@ app.get('/api/config', (req, res) => {
 });
 
 app.post('/api/pedidos', (req, res) => {
-  const { cliente_nombre, cliente_telefono, cliente_direccion, notas, items } = req.body;
-
-  if (!cliente_nombre || !items || items.length === 0) {
-    return res.status(400).json({ error: 'Nombre y al menos un plato son requeridos' });
-  }
-
-  for (const item of items) {
-    const plato = db.prepare('SELECT * FROM platos WHERE id = ?').get(item.plato_id);
-    if (!plato) return res.status(400).json({ error: `Plato no encontrado: ${item.plato_id}` });
-    if (!plato.disponible) return res.status(400).json({ error: `${plato.nombre} no esta disponible` });
-    if (plato.stock < item.cantidad) {
-      return res.status(400).json({ error: `Stock insuficiente para ${plato.nombre}. Disponible: ${plato.stock}` });
+  uploadPago.single('captura')(req, res, (err) => {
+    if (err) {
+      const message = err instanceof multer.MulterError
+        ? (err.code === 'LIMIT_FILE_SIZE' ? 'La captura no debe superar 5MB' : 'Error al subir la captura')
+        : err.message || 'Error al subir la captura';
+      return res.status(400).json({ error: message });
     }
-  }
 
-  const createOrder = db.transaction(() => {
-    let total = 0;
-    const detalles = [];
+    const { cliente_nombre, cliente_telefono, cliente_direccion, notas } = req.body;
+    let items;
+    try {
+      items = JSON.parse(req.body.items);
+    } catch (e) {
+      return res.status(400).json({ error: 'Items invalidos' });
+    }
+
+    const captura_pago = req.file ? '/uploads/pagos/' + req.file.filename : '';
+
+    if (!cliente_nombre || !items || items.length === 0) {
+      return res.status(400).json({ error: 'Nombre y al menos un plato son requeridos' });
+    }
 
     for (const item of items) {
       const plato = db.prepare('SELECT * FROM platos WHERE id = ?').get(item.plato_id);
-      const subtotal = plato.precio * item.cantidad;
-      total += subtotal;
-      detalles.push({ plato, cantidad: item.cantidad, subtotal });
-    }
-
-    const result = db.prepare(
-      'INSERT INTO pedidos (cliente_nombre, cliente_telefono, cliente_direccion, notas, total) VALUES (?, ?, ?, ?, ?)'
-    ).run(cliente_nombre, cliente_telefono || '', cliente_direccion || '', notas || '', total);
-
-    const pedidoId = result.lastInsertRowid;
-
-    for (const det of detalles) {
-      db.prepare(
-        'INSERT INTO detalle_pedidos (pedido_id, plato_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)'
-      ).run(pedidoId, det.plato.id, det.cantidad, det.plato.precio, det.subtotal);
-
-      db.prepare('UPDATE platos SET stock = stock - ? WHERE id = ?').run(det.cantidad, det.plato.id);
-
-      const updated = db.prepare('SELECT stock FROM platos WHERE id = ?').get(det.plato.id);
-      if (updated.stock <= 0) {
-        db.prepare('UPDATE platos SET disponible = 0 WHERE id = ?').run(det.plato.id);
+      if (!plato) return res.status(400).json({ error: `Plato no encontrado: ${item.plato_id}` });
+      if (!plato.disponible) return res.status(400).json({ error: `${plato.nombre} no esta disponible` });
+      if (plato.stock < item.cantidad) {
+        return res.status(400).json({ error: `Stock insuficiente para ${plato.nombre}. Disponible: ${plato.stock}` });
       }
     }
 
-    return { pedidoId, total };
+    const createOrder = db.transaction(() => {
+      let total = 0;
+      const detalles = [];
+
+      for (const item of items) {
+        const plato = db.prepare('SELECT * FROM platos WHERE id = ?').get(item.plato_id);
+        const subtotal = plato.precio * item.cantidad;
+        total += subtotal;
+        detalles.push({ plato, cantidad: item.cantidad, subtotal });
+      }
+
+      const result = db.prepare(
+        'INSERT INTO pedidos (cliente_nombre, cliente_telefono, cliente_direccion, notas, total, captura_pago) VALUES (?, ?, ?, ?, ?, ?)'
+      ).run(cliente_nombre, cliente_telefono || '', cliente_direccion || '', notas || '', total, captura_pago);
+
+      const pedidoId = result.lastInsertRowid;
+
+      for (const det of detalles) {
+        db.prepare(
+          'INSERT INTO detalle_pedidos (pedido_id, plato_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)'
+        ).run(pedidoId, det.plato.id, det.cantidad, det.plato.precio, det.subtotal);
+
+        db.prepare('UPDATE platos SET stock = stock - ? WHERE id = ?').run(det.cantidad, det.plato.id);
+
+        const updated = db.prepare('SELECT stock FROM platos WHERE id = ?').get(det.plato.id);
+        if (updated.stock <= 0) {
+          db.prepare('UPDATE platos SET disponible = 0 WHERE id = ?').run(det.plato.id);
+        }
+      }
+
+      return { pedidoId, total };
+    });
+
+    const { pedidoId, total } = createOrder();
+
+    const menuActualizado = getFullMenu();
+    io.emit('menu:updated', menuActualizado);
+
+    const pedido = db.prepare(`
+      SELECT p.*, GROUP_CONCAT(pl.nombre || ' x' || dp.cantidad, ', ') as detalle
+      FROM pedidos p
+      JOIN detalle_pedidos dp ON dp.pedido_id = p.id
+      JOIN platos pl ON pl.id = dp.plato_id
+      WHERE p.id = ?
+      GROUP BY p.id
+    `).get(pedidoId);
+
+    io.emit('pedido:nuevo', pedido);
+
+    res.json({ success: true, pedido_id: pedidoId, total });
   });
-
-  const { pedidoId, total } = createOrder();
-
-  const menuActualizado = getFullMenu();
-  io.emit('menu:updated', menuActualizado);
-
-  const pedido = db.prepare(`
-    SELECT p.*, GROUP_CONCAT(pl.nombre || ' x' || dp.cantidad, ', ') as detalle
-    FROM pedidos p
-    JOIN detalle_pedidos dp ON dp.pedido_id = p.id
-    JOIN platos pl ON pl.id = dp.plato_id
-    WHERE p.id = ?
-    GROUP BY p.id
-  `).get(pedidoId);
-
-  io.emit('pedido:nuevo', pedido);
-
-  res.json({ success: true, pedido_id: pedidoId, total });
 });
 
 app.post('/api/admin/login', (req, res) => {
