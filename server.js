@@ -27,7 +27,26 @@ const upload = multer({
     else cb(new Error('Solo se permiten archivos de imagen'));
   }
 });
+// Multer config para capturas de pago
+const pagosDir = path.join(__dirname, 'public', 'uploads', 'pagos');
+if (!fs.existsSync(pagosDir)) fs.mkdirSync(pagosDir, { recursive: true });
 
+const pagoStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, pagosDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, 'pago-' + Date.now() + '-' + Math.round(Math.random() * 1e6) + ext);
+  }
+});
+
+const uploadPago = multer({
+  storage: pagoStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Solo se permiten imagenes'));
+  }
+});
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
