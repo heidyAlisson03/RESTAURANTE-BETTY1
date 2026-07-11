@@ -119,8 +119,8 @@ if (!tieneCaptura) {
 }
 
 seedData();
-  const hash = bcrypt.hashSync('admin123', 10);
-  db.prepare('INSERT OR IGNORE INTO admin_users (username, password) VALUES (?, ?)').run('admin', hash);
+  const hash = bcrypt.hashSync('HEIDY-YAL.12872', 10);
+  db.prepare('INSERT OR IGNORE INTO admin_users (username, password) VALUES (?, ?)').run('BETTY093762.', hash);
 }
 
 seedData();
